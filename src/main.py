@@ -59,8 +59,8 @@ def fetch_job_posts(access_token):
 
 def main():
     # Your LinkedIn credentials (replace with actual values)
-    client_id = "781w6yolu0kwi6"
-    client_secret = "WPL_AP1.PVBfgZ07Su41GyXy.llvmgQ=="
+    client_id = ""
+    client_secret = ""
 
     # Step 1: Get the access token
     access_token = get_access_token(client_id, client_secret)
