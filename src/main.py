@@ -1,81 +1,60 @@
+import csv
+from datetime import datetime
 import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 
-def get_access_token(client_id, client_secret):
-    """
-    Get access token from LinkedIn using client credentials.
+# Set up headless Chrome
+options = Options()
+options.headless = True
+options.add_argument("--window-size=1920,1080")
+options.add_argument("--disable-blink-features=AutomationControlled")
+
+# Create a browser instance
+service = Service(executable_path="chromedriver.exe")
+driver = webdriver.Chrome(service=service)
+
+# Loop through each page
+num_pages = 5  # Number of pages to scrape
+job_list = []
+
+for page in range(1, num_pages + 1):
+    # Construct the page URL (Change the URL format as per the target website)
+    url = f"https://vn.indeed.com/jobs?q=it&l=Hanoi&start={page * 10}"  # Example Indeed URL for IT jobs in Hanoi
+    print(f"Scraping page: {url}")
     
-    Args:
-        client_id (str): Your LinkedIn application's client ID.
-        client_secret (str): Your LinkedIn application's client secret.
-
-    Returns:
-        str: The access token.
-    """
-    url = "https://www.linkedin.com/oauth/v2/accessToken"
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    data = {
-        "grant_type": "client_credentials",
-        "client_id": client_id,
-        "client_secret": client_secret
-    }
-
-    # Send the POST request to get the access token
-    response = requests.post(url, headers=headers, data=data)
+    # Open the URL
+    driver.get(url)
     
-    if response.status_code == 200:
-        access_token = response.json().get("access_token")
-        print(f"Access token received: {access_token}")
-        return access_token
-    else:
-        print(f"Failed to get access token: {response.status_code}, {response.text}")
-        return None
-
-def fetch_job_posts(access_token):
-    """
-    Fetch job posts from LinkedIn API using the provided access token.
+    # Get the page content
+    page_source = driver.page_source
+    soup = BeautifulSoup(page_source, 'html.parser')
     
-    Args:
-        access_token (str): The access token obtained from LinkedIn API.
-    
-    Returns:
-        list: A list of job posts fetched from LinkedIn.
-    """
-    url = "https://api.linkedin.com/v2/jobs"
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Connection": "Keep-Alive"
-    }
+    # Find the job elements and extract data
+    jobs = soup.find_all('div', class_='job_seen_beacon')
+    for job in jobs:
+        title = job.find('h2', class_='jobTitle').text.strip() if job.find('h2', class_='jobTitle') else "N/A"
+        company = job.find('span', class_='companyName').text.strip() if job.find('span', class_='companyName') else "N/A"
+        location = job.find('div', class_='companyLocation').text.strip() if job.find('div', class_='companyLocation') else "N/A"
+        salary = job.find('div', class_='salarySnippet').text.strip() if job.find('div', class_='salarySnippet') else "N/A"
+        posted_date = job.find('span', class_='date').text.strip() if job.find('span', class_='date') else "N/A"
+        link = job.find('a', href=True)['href'] if job.find('a', href=True) else "N/A"
+        
+        job_list.append({
+            'Title': title,
+            'Company': company,
+            'Location': location,
+            'Salary': salary,
+            'Posted Date': posted_date,
+            'Link': f"https://vn.indeed.com{link}" if link != "N/A" else "N/A"
+        })
 
-    # Send GET request to fetch job posts
-    response = requests.get(url, headers=headers)
-    
-    if response.status_code == 200:
-        job_posts = response.json()
-        print("Job posts fetched successfully.")
-        return job_posts
-    else:
-        print(f"Failed to fetch job posts: {response.status_code}, {response.text}")
-        return None
+# Close the browser
+driver.quit()
 
-def main():
-    # Your LinkedIn credentials (replace with actual values)
-    client_id = ""
-    client_secret = ""
-
-    # Step 1: Get the access token
-    access_token = get_access_token(client_id, client_secret)
-
-    if access_token:
-        # Step 2: Fetch job posts using the access token
-        job_posts = fetch_job_posts(access_token)
-
-        if job_posts:
-            # Process job posts (for demonstration purposes, we just print the results)
-            print(job_posts)
-        else:
-            print("No job posts found.")
-    else:
-        print("Unable to retrieve access token.")
-
-if __name__ == "__main__":
-    main()
+# Save the data to a CSV file
+df = pd.DataFrame(job_list)
+df.to_csv('indeed_jobs.csv', index=False, encoding='utf-8-sig')
