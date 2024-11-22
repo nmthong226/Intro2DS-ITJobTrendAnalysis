@@ -34,11 +34,29 @@ def extract_skills(text):
     """
     # List of common IT-related keywords
     skill_keywords = [
-        'Python', 'C++', 'Java', 'SQL', 'JavaScript', 'HTML', 'CSS', 
+        'Python', 'C++', 'Java', 'SQL', 'JavaScript', 'HTML', 'HTML5', 'CSS', 'CSS3', 'AJAX', 'Tailwind CSS',
         'React', 'Node.js', 'Tableau', 'Power BI', 'Qlik', 'Excel', 
         'MS Excel', 'Data analysis', 'Data science', 'Odoo', 'PC', 
-        'Power Point', 'Statistics', 'Analysis', '.NET', 'PHP', 'C#', 'C/C++',
-        'NestJS', 'MongoDB', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP',
+        'Power Point', 'Statistics', 'Analysis', '.NET', 'PHP', 'C#', 'C/C++', 'NodeJS', 'JQuery',
+        'Express', 'Nest', 'NestJS', 'MongoDB', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'gRPC',
+        'Angular', 'Vue.js', 'TypeScript', 'Bootstrap', 'Sass', 'jQuery',
+        'Flask', 'Django', 'Spring', 'Ruby on Rails', 'Laravel', 
+        'PostgreSQL', 'MySQL', 'Redis', 'ElasticSearch', 'Firebase',
+        'GraphQL', 'REST API', 'Restful API', 'SOAP', 'Jenkins', 'Git', 'GitHub',
+        'Bitbucket', 'CI/CD', 'Terraform', 'Ansible', 'Chef', 'Puppet', 'Puppeteer',
+        'Linux', 'Unix', 'Bash', 'Shell scripting', 'Pandas', 'NumPy', 
+        'SciPy', 'TensorFlow', 'Keras', 'PyTorch', 'Hadoop', 'Spark', 'Selenium',
+        'Big Data', 'Machine Learning', 'Deep Learning', 'AI', 'Data Mining',
+        'NoSQL', 'JIRA', 'Confluence', 'Agile', 'Scrum', 'Kanban',
+        'VMware', 'Hyper-V', 'Networking', 'TCP/IP', 'Firewall',
+        'Load Balancing', 'Microservices', 'Serverless', 'Figma', 'Adobe XD',
+        'UI/UX', 'Responsive Design', 'SEO', 'Content Management Systems',
+        'WordPress', 'Drupal', 'Joomla', 'Salesforce', 'SAP', 'ERP',
+        'Business Intelligence', 'ETL', 'SAS', 'MATLAB', 'R', 'Jupyter',
+        'HDFS', 'Tableau Server', 'Pentaho', 'Snowflake', 'BigQuery',
+        'Airflow', 'Kafka', 'RabbitMQ', 'Nginx', 'Apache', 'IIS',
+        'Android', 'iOS', 'Swift', 'Kotlin', 'Xamarin', 'Flutter', 
+        'React Native', 'Cordova', 'Unity', 'Unreal Engine', 'Game Development'
     ]
 
     # Find skills that match the keywords
@@ -119,10 +137,6 @@ def get_job_details(job_link):
 def scrape_jobs_careerviet(num_pages):
     job_list = []
 
-    # Define possible roles and levels
-    roles = ['Mobile', 'Web', 'Frontend', 'Backend', 'Fullstack', 'DevOps', 'Software', 'QA', 'Data', 'AI']
-    levels = ['Senior', 'Fresher', 'Intern', 'Junior', 'Lead']
-
     # Loop through each page from 1 to num_pages
     for page in range(1, num_pages + 1):
         # Construct the page URL
@@ -131,11 +145,12 @@ def scrape_jobs_careerviet(num_pages):
         
         # Open the URL
         driver.get(url)
+        time.sleep(random.uniform(2, 5))
         # Wait until the job items are fully loaded
         try:
             # Wait for job elements to be present
-            WebDriverWait(driver, 20).until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'div.job-item'))
+            WebDriverWait(driver, 50).until(
+                EC.presence_of_all_elements_located((By.CLASS_NAME, 'job-item'))
             )
         except Exception as e:
             print(f"Error loading page {page}: {e}")
@@ -176,21 +191,9 @@ def scrape_jobs_careerviet(num_pages):
             # Scrape additional details from the job detail page
             job_details = get_job_details(full_link)
 
-            # Extract Role and Level from the job title
+            # Left two fields as N/A due to not enough data
             role = "N/A"
             level = "N/A"
-            
-            # Check for role in the title
-            for r in roles:
-                if r.lower() in title.lower():
-                    role = r
-                    break  # Stop once a role is found
-
-            # Check for level in the title
-            for l in levels:
-                if l.lower() in title.lower():
-                    level = l
-                    break  # Stop once a level is found
 
             # Add the job details to the list
             job_list.append({
@@ -205,14 +208,13 @@ def scrape_jobs_careerviet(num_pages):
                 'Source Platform': 'Careerviet',
                 'Job Link': full_link
             })
-        
         # Random sleep to avoid getting blocked
         time.sleep(random.uniform(2, 5))
-        
+    time.sleep(random.uniform(2, 5))   
     return job_list
 
 # Example usage
-num_pages = 1  # Specify the number of pages you want to scrape
+num_pages = 25  # Specify the number of pages you want to scrape
 
 # Call the scrape_jobs_careerviet function
 job_list = scrape_jobs_careerviet(num_pages)
