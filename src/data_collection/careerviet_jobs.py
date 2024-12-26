@@ -35,11 +35,12 @@ def extract_skills(text):
     # List of common IT-related keywords
     skill_keywords = [
         'Python', 'C++', 'Java', 'SQL', 'JavaScript', 'HTML', 'HTML5', 'CSS', 'CSS3', 'AJAX', 'Tailwind CSS',
-        'React', 'Node.js', 'Tableau', 'Power BI', 'Qlik', 'Excel', 
+        'React', 'ReactJS', 'Node.js',
+        'Tableau', 'Power BI', 'Qlik', 'Excel',
         'MS Excel', 'Data analysis', 'Data science', 'Odoo', 'PC', 
-        'Power Point', 'Statistics', 'Analysis', '.NET', 'PHP', 'C#', 'C/C++', 'NodeJS', 'JQuery',
+        'Power Point', 'Statistics', 'Analysis', '.NET', '.Net', 'PHP', 'C#', 'C/C++', 'NodeJS', 'JQuery', 'RESTful',
         'Express', 'Nest', 'NestJS', 'MongoDB', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'gRPC',
-        'Angular', 'Vue.js', 'TypeScript', 'Bootstrap', 'Sass', 'jQuery',
+        'Angular' 'AngularJS', 'Vue.js', 'VueJS', 'TypeScript', 'Bootstrap', 'Sass', 'jQuery',
         'Flask', 'Django', 'Spring', 'Ruby on Rails', 'Laravel', 
         'PostgreSQL', 'MySQL', 'Redis', 'ElasticSearch', 'Firebase',
         'GraphQL', 'REST API', 'Restful API', 'SOAP', 'Jenkins', 'Git', 'GitHub',
@@ -63,8 +64,14 @@ def extract_skills(text):
     skills = []
     if isinstance(text, str):  # Ensure the input is a string
         for skill in skill_keywords:
-            if re.search(r'\b' + re.escape(skill) + r'\b', text, re.IGNORECASE):
-                skills.append(skill)
+            # Custom match for 'C/C++' and 'C#'
+            if skill in ['C/C++', 'C#']:
+                pattern = re.escape(skill).replace(r'\#', '#')  # Allow # directly
+                if re.search(pattern, text, re.IGNORECASE):
+                    skills.append(skill)
+            else:
+                if re.search(r'\b' + re.escape(skill) + r'\b', text, re.IGNORECASE):
+                    skills.append(skill)
 
     return skills
 
@@ -213,8 +220,10 @@ def scrape_jobs_careerviet(num_pages):
     time.sleep(random.uniform(2, 5))   
     return job_list
 
-# Example usage
-num_pages = 25  # Specify the number of pages you want to scrape
+# DEFINE NUMBER OF PAGE
+# Month: 11 is 25
+# Month: 12 is 23
+num_pages = 1  # Specify the number of pages you want to scrape
 
 # Call the scrape_jobs_careerviet function
 job_list = scrape_jobs_careerviet(num_pages)
