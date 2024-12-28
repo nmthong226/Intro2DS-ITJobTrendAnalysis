@@ -21,6 +21,19 @@ options.add_argument("--disable-blink-features=AutomationControlled")
 service = Service(executable_path="chromedriver.exe")
 driver = webdriver.Chrome(service=service)
 
+# Define the file path for saving data
+output_file = 'careerviet_jobs_2024.csv'
+
+# Initialize the CSV file with headers
+headers = [
+    'Job Title', 'Role', 'Level', 'Years of Experience', 'Company', 
+    'Location', 'Salary Range', 'Required Skills', 'Source Platform', 'Job Link'
+]
+
+# Create or reset the CSV file at the start of the script
+with open(output_file, mode='w', newline='', encoding='utf-8-sig') as file:
+    writer = csv.DictWriter(file, fieldnames=headers)
+    writer.writeheader()
 
 def extract_skills(text):
     """
@@ -144,93 +157,86 @@ def get_job_details(job_link):
 def scrape_jobs_careerviet(num_pages):
     job_list = []
 
-    # Loop through each page from 1 to num_pages
     for page in range(1, num_pages + 1):
-        # Construct the page URL
-        url = f"https://careerviet.vn/viec-lam/cntt-phan-mem-c1-trang-{page}-vi.html"
-        print(f"Scraping page: {url}")
-        
-        # Open the URL
-        driver.get(url)
-        time.sleep(random.uniform(2, 5))
-        # Wait until the job items are fully loaded
         try:
-            # Wait for job elements to be present
+            # Construct the page URL
+            url = f"https://careerviet.vn/viec-lam/cntt-phan-mem-c1-trang-{page}-vi.html"
+            print(f"Scraping page: {url}")
+
+            # Open the URL
+            driver.get(url)
+            time.sleep(random.uniform(2, 5))
+
+            # Wait until the job items are fully loaded
             WebDriverWait(driver, 50).until(
                 EC.presence_of_all_elements_located((By.CLASS_NAME, 'job-item'))
             )
+
+            # Parse the page content
+            soup = BeautifulSoup(driver.page_source, 'html.parser')
+
+            # Find job elements
+            job_elements = soup.find_all('div', class_=re.compile(r'\bjob-item\b'))
+            print(f"Number of job elements found on page {page}: {len(job_elements)}")
+
+            if not job_elements:  # Stop if no job elements are found
+                print(f"No jobs found on page {page}. Stopping scrape.")
+                break
+
+            for job_element in job_elements:
+                # Extract details
+                job_link_tag = job_element.find('a', class_='job_link')
+                title = job_link_tag.get_text(strip=True) if job_link_tag else "N/A"
+                link = job_link_tag.get('href', 'N/A') if job_link_tag else "N/A"
+                full_link = link if link.startswith('https://careerviet.vn') else f"https://careerviet.vn{link}"
+
+                company_name_tag = job_element.find('a', class_='company-name')
+                company_name = company_name_tag.get_text(strip=True) if company_name_tag else "N/A"
+
+                salary_tag = job_element.find('div', class_='salary')
+                salary = salary_tag.get_text(strip=True).replace('Lương: ', '').strip() if salary_tag else "N/A"
+
+                location_tag = job_element.find('div', class_='location')
+                location = location_tag.get_text(strip=True) if location_tag else "N/A"
+
+                job_details = get_job_details(full_link)
+
+                # Add job to list
+                job_list.append({
+                    'Job Title': title,
+                    'Role': "N/A",
+                    'Level': "N/A",
+                    'Years of Experience': job_details['Years of Experience'],
+                    'Company': company_name,
+                    'Location': location,
+                    'Salary Range': salary,
+                    'Required Skills': job_details['Required Skills'],
+                    'Source Platform': 'Careerviet',
+                    'Job Link': full_link
+                })
+
+            # Save the data incrementally to the CSV file
+            with open(output_file, mode='a', newline='', encoding='utf-8-sig') as file:
+                writer = csv.DictWriter(file, fieldnames=headers)
+                writer.writerows(job_list)
+
+            # Clear the list for the next page
+            job_list = []
+
+            # Random sleep to avoid getting blocked
+            time.sleep(random.uniform(2, 5))
+
         except Exception as e:
-            print(f"Error loading page {page}: {e}")
+            print(f"Error on page {page}: {e}")
             continue
-
-        # Get the page content after it's fully loaded
-        page_source = driver.page_source
-        soup = BeautifulSoup(page_source, 'html.parser')
-
-        # Use a regular expression to match job items with 'job-item' and 'has-background'
-        job_elements = soup.find_all('div', class_=re.compile(r'\bjob-item\b'))
-        print(f"Number of job elements found on page {page}: {len(job_elements)}")
-
-        for job_element in job_elements:
-            # Extract job title and link from the <a> tag with class "job_link"
-            job_link_tag = job_element.find('a', class_='job_link')
-            title = job_link_tag.get_text(strip=True) if job_link_tag else "N/A"
-            link = job_link_tag.get('href', 'N/A') if job_link_tag else "N/A"
-            full_link = link if link.startswith('https://careerviet.vn') else f"https://careerviet.vn{link}"
-
-            # Extract company name from the <a> tag with class "company-name"
-            company_name_tag = job_element.find('a', class_='company-name')
-            company_name = company_name_tag.get_text(strip=True) if company_name_tag else "N/A"
-
-            # Extract salary from the <div> tag with class "salary"
-            salary_tag = job_element.find('div', class_='salary')
-            if salary_tag:
-                salary = salary_tag.get_text(strip=True)
-                # Remove the 'Lương: ' part of the string
-                salary = salary.replace('Lương: ', '').strip()
-            else:
-                salary = "N/A"
-
-            # Extract location from the <div> tag with class "location"
-            location_tag = job_element.find('div', class_='location')
-            location = location_tag.get_text(strip=True) if location_tag else "N/A"
-            
-            # Scrape additional details from the job detail page
-            job_details = get_job_details(full_link)
-
-            # Left two fields as N/A due to not enough data
-            role = "N/A"
-            level = "N/A"
-
-            # Add the job details to the list
-            job_list.append({
-                'Job Title': title,
-                'Role': role,
-                'Level': level,
-                'Years of Experience': job_details['Years of Experience'],
-                'Company': company_name,
-                'Location': location,
-                'Salary Range': salary,
-                'Required Skills': job_details['Required Skills'],
-                'Source Platform': 'Careerviet',
-                'Job Link': full_link
-            })
-        # Random sleep to avoid getting blocked
-        time.sleep(random.uniform(2, 5))
-    time.sleep(random.uniform(2, 5))   
-    return job_list
 
 # DEFINE NUMBER OF PAGE
 # Month: 11 is 25
-# Month: 12 is 23
-num_pages = 1  # Specify the number of pages you want to scrape
+# Month: 12 is 22
+num_pages = 22  # Specify the number of pages you want to scrape
 
 # Call the scrape_jobs_careerviet function
 job_list = scrape_jobs_careerviet(num_pages)
-
-# Save the data to a CSV file
-df = pd.DataFrame(job_list)
-df.to_csv('careerviet_jobs_2024.csv', index=False, encoding='utf-8-sig')
 
 # Close the browser
 driver.quit()
